@@ -8,3 +8,8 @@ env/
 coverage*
 build/
 deployments
+
+# foundry
+cache/
+out/
+broadcast/

@@ -1,5 +1,7 @@
 # ScopeGuard
 
+> **Note**: This project is a fork of [zodiac-guard-scope](https://github.com/gnosisguild/zodiac-guard-scope) by Gnosis Guild, adapted to use Foundry-based deployment scripts instead of the original Hardhat-based scripts. The core smart contracts remain unchanged and are licensed under LGPL-3.0+.
+
 [![Build Status](https://github.com/gnosis/zodiac-guard-scope/actions/workflows/ci.yml/badge.svg)](https://github.com/gnosis/zodiac-guard-scope/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/gnosis/zodiac-guard-scope/badge.svg?branch=main)](https://coveralls.io/github/gnosis/zodiac-guard-scope)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/gnosis/CODE_OF_CONDUCT)
@@ -45,13 +47,42 @@ The contracts have been developed with [Solidity 0.8.6](https://github.com/ether
 
 Follow our [ScopeGuard Setup Guide](./docs/setup_guide.md) to setup and use a ScopeGuard.
 
+### Foundry Migration
+
+This fork has been adapted to use Foundry instead of the original Hardhat toolchain:
+
+- **Deployment Scripts**: Converted from Hardhat deployment scripts to Foundry scripts (see `scripts/` directory)
+- **Build System**: Uses `foundry.toml` configuration instead of `hardhat.config.ts`
+- **Testing**: Can be run using Foundry's testing framework
+- **Smart Contracts**: Remain completely unchanged from the original implementation
+
+This project uses Makefile-based commands for easy deployment and management. For example:
+
+```bash
+# Install dependencies
+make install
+
+# Build contracts
+make build
+
+# Deploy ScopeGuard
+make deploy NETWORK=<network> ACCOUNT=<your_account> OWNER_ADDRESS=<owner_address>
+```
+
+For complete deployment and setup instructions, please refer to the [ScopeGuard Setup Guide](./docs/setup_guide.md).
+
 ### Security and Liability
 
 All contracts are WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 ### License
 
-Created under the [LGPL-3.0+ license](LICENSE).
+This project is a fork of [zodiac-guard-scope](https://github.com/gnosisguild/zodiac-guard-scope) by Gnosis Guild. The original project and this fork are both licensed under the [LGPL-3.0+ license](LICENSE).
+
+**Original Copyright**: Copyright (C) Gnosis Guild  
+**Fork Modifications**: Foundry-based deployment scripts and tooling adaptations
+
+All smart contracts remain unchanged from the original implementation and retain their original licensing terms.
 
 ### Audits
 

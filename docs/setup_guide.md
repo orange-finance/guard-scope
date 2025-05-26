@@ -1,6 +1,6 @@
 # ScopeGuard Setup Guide
 
-This guide shows how to setup a ScopeGuard with a Gnosis Safe on the Rinkeby testnetwork.
+This guide shows how to setup a ScopeGuard with a Gnosis Safe on supported networks.
 
 _Note: transaction guards only work with safes on version 1.3.0 or greater._
 
@@ -11,53 +11,52 @@ Once enabled on your Safe, your ScopeGuard will revert any transactions to addre
 
 Before you enable your ScopeGuard, please make sure you have setup the ScopeGuard fully to enable each of the addresses and functions you wish the multisig owners to be able to call.
 
-Best practice is to enable another account that you control as a module to your Safe before enabling your ScopeGuard.
-
 ## Prerequisites
 
-To start the process you need to create a Safe on the Rinkeby test network (e.g. via https://rinkeby.gnosis-safe.io). A Safe transaction is required to setup the ScopeGuard.
+To start the process you need to create a Safe on your target network. A Safe transaction is required to setup the ScopeGuard.
 
-Before anything else, you'll need to install the projects dependencies by running `yarn`.
-
-```bash
-yarn
-```
-
-And then compile the contracts with `yarn build`.
+Before anything else, you'll need to install the project dependencies by running:
 
 ```bash
-yarn build
+make install
 ```
 
-For the hardhat tasks to work the environment needs to be properly configured. See the [sample env file](../.env.sample) for more information.
+And then compile the contracts with:
+
+```bash
+make build
+```
+
+For the deployment and management commands to work, the environment needs to be properly configured. See the [sample env file](../.env.sample) for more information.
+
+## Supported Networks
+
+The following networks are supported:
+
+- arbitrum (Arbitrum One)
+- berachain (Berachain)
+- sonic (Sonic)
+- sepolia (Sepolia testnet)
 
 ## Deploying the ScopeGuard
 
 The scope guard has one variable which must be set:
-- Owner: address that can call setter functions 
 
-Hardhat tasks can be used to deploy a ScopeGuard instance. There are two different ways to deploy it, the first one is through a normal deployment and passing arguments to the constructor (without the `proxied` flag), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (without the `proxied` flag) - The master copy and factory address can be found in the [zodiac repository](https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts) and these are the addresses that are going to be used when deploying the module through factory.
+- Owner: address that can call setter functions
+
+### Production Networks
+
+For production networks, you need to set the required environment variables:
+
+```bash
+make deploy NETWORK=arbitrum ACCOUNT=<your_account> OWNER_ADDRESS=<owner_address>
+```
+
+Replace `arbitrum` with your target network (arbitrum, berachain, sonic, sepolia).
+
+This will deploy and verify the contract (on supported networks) and return the address of the deployed Scope Guard.
 
 _Note: Multiple safes can use the same instance of a ScopeGuard, but they will all have the same settings controlled by the same `owner`. In most cases it is preferable for each safe to have its own instance of ScopeGuard._
-
-An example for this on Rinkeby would be:
-```bash
-yarn hardhat setup --network rinkeby --owner <owner_address>
-```
-
-or
-
-```bash
-yarn hardhat setup --network rinkeby  --owner <owner_address> --proxied true
-```
-
-This should return the address of the deployed Scope Guard. For this guide we assume this to be `0x3939393939393939393939393939393939393939`
-
-Once the module is deployed you should verify the source code (Note: If you used the factory deployment the contract should be already verified). If you use a network that is Etherscan compatible and you configure the `ETHERSCAN_API_KEY` in your environment you can use the provided hardhat task to do this.
-
-```bash
-yarn hardhat verifyEtherscan --network rinkeby --guard <scope_guard_address> --owner <owner_address>
-```
 
 ### Setting up the ScopeGuard
 
@@ -68,7 +67,7 @@ Allow any target addresses that the multisig owners should be allowed to call.
 #### Allow a target address
 
 ```bash
-yarn hardhat allowTarget --network rinkeby --guard <scope_guard_address> --target <target_address>
+make set-target-allowed NETWORK=<network> GUARD_ADDRESS=<scope_guard_address> TARGET_ADDRESS=<target_address> ALLOWED=true ACCOUNT=<your_account>
 ```
 
 You should use this command once for each address that the multisig owners are allowed to call.
@@ -78,44 +77,64 @@ You should use this command once for each address that the multisig owners are a
 To limit the scope of an address to specific function signatures, you must toggle on `scoped` for that address and then allow the function signature for that address.
 
 ```bash
-yarn hardhat toggleScoped --network rinkeby --guard <scope_guard_address> --target <target_address>
+make set-scoped NETWORK=<network> GUARD_ADDRESS=<scope_guard_address> TARGET_ADDRESS=<target_address> SCOPED=true ACCOUNT=<your_account>
 ```
 
-You can use this utility to generate the function signature for specific functions.
+Then set allow the specific function signature:
 
 ```bash
-yarn hardhat getFunctionSignature --function <escaped_function_sighash>
+make set-allowed-function NETWORK=<network> GUARD_ADDRESS=<scope_guard_address> TARGET_ADDRESS=<target_address> FUNCTION_SIG="transfer(address,uint256)" ALLOWED=true ACCOUNT=<your_account>
 ```
 
-Then set allow the specific function signature.
-
-```bash
-yarn hardhat allowFunction --network rinkeby --guard <scope_guard_address> --target <target_address> --sig <function_signature>
-```
-
-An example of an escaped function sighash is `balanceOf\(address\)`.
-
-#### Allow delegate calls to an addresses
-
-To allow the multisig owners to initiate delegate call transactions to an address, you must explicitly enable it for that target address.
-
-```bash
-yarn hardhat allowDelegateCall --network rinkeby --guard <scope_guard_address> --target <target_address>
-```
+An example of a function signature is `transfer(address,uint256)` or `balanceOf(address)`.
 
 #### Transferring Ownership of the guard
 
 Once you have set up your guard, you should transfer ownership to the appropriate address (usually the Safe that the guard will be enabled on).
 
 ```bash
-yarn hardhat transferOwnership --network rinkeby --guard <scope_guard_address> --newOwner <new_owner_address>
+make transfer-ownership NETWORK=<network> GUARD_ADDRESS=<scope_guard_address> NEW_OWNER=<new_owner_address> ACCOUNT=<your_account>
 ```
+
+### Dry Run Mode
+
+You can simulate any management command without executing it by adding `DRY_RUN=true`:
+
+```bash
+make set-target-allowed NETWORK=arbitrum GUARD_ADDRESS=<scope_guard_address> TARGET_ADDRESS=<target_address> ALLOWED=true ACCOUNT=<your_account> DRY_RUN=true
+```
+
+This will show you what the transaction would do without actually executing it.
 
 ### Enabling the ScopeGuard
 
-One your scope guard is set up, you'll need to call the `setGuard()` function on your GnosisSafe.
+Once your scope guard is set up, you'll need to call the `setGuard()` function on your GnosisSafe.
 You can do this with a custom contract interaction via the [Gnosis Safe UI](http://gnosis-safe.io/) or the [Gnosis Safe CLI](https://github.com/gnosis/safe-cli).
 
-### Deploy a master copy 
+## Environment Variables
 
-The master copy contracts can be deployed through `yarn deploy` command. Note that this only should be done if the Scope Guard contract gets an update and the ones referred on the (zodiac repository)[https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts] should be used.
+The following environment variables are required for different operations:
+
+- `ACCOUNT`: Forge account name
+- `OWNER_ADDRESS`: ScopeGuard owner address
+- `GUARD_ADDRESS`: ScopeGuard contract address (for management commands)
+- `TARGET_ADDRESS`: Target address to allow (for set-target-allowed command)
+- `FUNCTION_SIG`: Function signature (e.g., 'transfer(address,uint256)') (for set-allowed-function)
+- `ALLOWED`: Allow/disallow flag (true/false) (for set-target-allowed and set-allowed-function)
+- `NEW_OWNER`: New owner address (for transfer-ownership)
+- `DRY_RUN`: Dry run mode flag (true/false) - simulates transactions without executing
+- `ARBISCAN_API_KEY`: Arbiscan verification key (for Arbitrum)
+
+## Available Commands
+
+For a complete list of available commands, run:
+
+```bash
+make help
+```
+
+To check your current environment configuration:
+
+```bash
+make status
+```
