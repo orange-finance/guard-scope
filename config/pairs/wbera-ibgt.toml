@@ -1,0 +1,16 @@
+pair_name = "WBERA-iBGT"
+
+# Guard owner address (Safe/multisig address)
+owner = "0xb0c757bC94704246Ce0552b5Ccc1A547c0633914"
+
+# Variable liquidity protocol (can be kodiak, bex, etc.)
+[liquidity_protocol]
+name = "kodiak"
+address = "0x564f011D557aAd1cA09BFC956Eb8a17C35d490e0"
+functions = ["approve(address,uint256)"]
+
+# Pair-specific vault addresses
+[vaults]
+infrared = "0xe1897e3eb930aad6f9ea9ecf96ea846b5d23b0a6"
+bearn = "0xB4EC34a4fa7eBA83a919e8009c1064E38db50593"
+berapaw = "0x3be1be98efaca8c1eb786cbf38234c84b5052eeb" 

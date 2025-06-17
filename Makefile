@@ -14,6 +14,9 @@ FUNCTION_SIG ?= ""
 ALLOWED ?= ""
 NEW_OWNER ?= ""
 DRY_RUN ?= false
+PAIR ?= ""
+PAIR_CONFIG_FILE ?= ""
+SENDER_ADDRESS ?= ""
 
 # Network configurations
 RPC_URL_arbitrum = arbitrum
@@ -29,7 +32,8 @@ get_verify_flag = $(if $(filter $(1),$(VERIFY_NETWORKS)),--verify,)
 get_cast_cmd = $(if $(filter true,$(DRY_RUN)),cast call --trace,cast send)
 
 # Forge commands
-FORGE_SCRIPT = forge script scripts/Deploy.s.sol
+FORGE_SCRIPT = forge script script/Deploy.s.sol
+FORGE_GUARD_SCRIPT = forge script script/BeranciaGuardSetup.s.sol:BeranciaGuardSetup
 FORGE_BUILD = forge build
 FORGE_INSTALL = forge install
 
@@ -55,6 +59,59 @@ format:
 
 format-check:
 	npx prettier 'contracts/**/*.sol' --check
+
+# Guard Deployment and Management
+.PHONY: guard-deploy guard-list-pairs guard-check-config
+
+guard-deploy:
+	@test -n "$(NETWORK)" || (echo "Error: NETWORK is required. Use: make guard-deploy NETWORK=<network> PAIR=<pair>" && echo "Available networks: $(SUPPORTED_NETWORKS)" && exit 1)
+	@echo "$(SUPPORTED_NETWORKS)" | grep -wq "$(NETWORK)" || (echo "Error: Unknown network '$(NETWORK)'" && echo "Available networks: $(SUPPORTED_NETWORKS)" && exit 1)
+	@test -n "$(ACCOUNT)" || (echo "ACCOUNT is required for $(NETWORK)" && exit 1)
+	@test -n "$(SENDER_ADDRESS)" || (echo "SENDER_ADDRESS is required for $(NETWORK) (address of the deploying account)" && exit 1)
+	$(eval CONFIG_FILE := $(if $(PAIR),config/pairs/$(PAIR).toml,$(PAIR_CONFIG_FILE)))
+	@test -n "$(CONFIG_FILE)" || (echo "Error: Either PAIR or PAIR_CONFIG_FILE is required"; echo "Usage examples:"; echo "  make guard-deploy NETWORK=berachain PAIR=honey-wbera"; echo "  make guard-deploy NETWORK=berachain PAIR_CONFIG_FILE=config/pairs/custom.toml"; echo "Available pairs:"; ls config/pairs/*.toml 2>/dev/null | xargs -I {} basename {} .toml || echo "No pair configurations found"; exit 1)
+	@test -f "$(CONFIG_FILE)" || (echo "Error: Configuration file $(CONFIG_FILE) not found"; echo "Available pairs:"; ls config/pairs/*.toml 2>/dev/null | xargs -I {} basename {} .toml || echo "No pair configurations found"; exit 1)
+	@echo "Deploying guard for pair using $(CONFIG_FILE) on $(NETWORK)..."
+	@echo "Sender address: $(SENDER_ADDRESS)"
+	PAIR_CONFIG_FILE="$(CONFIG_FILE)" $(FORGE_GUARD_SCRIPT) \
+		--rpc-url $(call get_rpc_url,$(NETWORK)) \
+		--account $(ACCOUNT) \
+		--sender $(SENDER_ADDRESS) \
+		--broadcast \
+		$(call get_verify_flag,$(NETWORK)) \
+		-vvv
+
+guard-list-pairs:
+	@echo "Available pair configurations:"
+	@ls config/pairs/*.toml 2>/dev/null | while read -r file; do \
+		pair_name=$$(basename "$$file" .toml); \
+		echo "  $$pair_name"; \
+		if [ -f "$$file" ]; then \
+			grep "^pair_name" "$$file" | sed 's/^/    /'; \
+		fi; \
+	done || echo "No pair configurations found"
+
+guard-check-config:
+	@if [ -n "$(PAIR)" ]; then \
+		config_file="config/pairs/$(PAIR).toml"; \
+	elif [ -n "$(PAIR_CONFIG_FILE)" ]; then \
+		config_file="$(PAIR_CONFIG_FILE)"; \
+	else \
+		echo "Error: Either PAIR or PAIR_CONFIG_FILE is required"; \
+		exit 1; \
+	fi; \
+	test -f "$$config_file" || (echo "Error: Configuration file $$config_file not found" && exit 1); \
+	echo "Configuration for $$config_file:"; \
+	echo ""; \
+	cat "$$config_file"; \
+	echo ""; \
+	echo "Common configuration (config/common.toml):"; \
+	echo ""; \
+	if [ -f "config/common.toml" ]; then \
+		cat "config/common.toml"; \
+	else \
+		echo "Warning: config/common.toml not found"; \
+	fi
 
 # Unified deployment target
 .PHONY: deploy
@@ -156,7 +213,16 @@ help:
 	@echo "  make format            Format Solidity code"
 	@echo "  make format-check      Check Solidity code formatting"
 	@echo ""
-	@echo "Deployment:"
+	@echo "Guard Deployment (New Automated System):"
+	@echo "  make guard-deploy NETWORK=berachain PAIR=honey-wbera ACCOUNT=deployer SENDER_ADDRESS=0x..."
+	@echo "                             Deploy guard for specific pair using config/pairs/<pair>.toml"
+	@echo "  make guard-deploy NETWORK=berachain PAIR_CONFIG_FILE=config/pairs/custom.toml ACCOUNT=deployer SENDER_ADDRESS=0x..."
+	@echo "                             Deploy guard using custom configuration file"
+	@echo "  make guard-list-pairs      List all available pair configurations"
+	@echo "  make guard-check-config PAIR=honey-wbera"
+	@echo "                             Check configuration for specific pair"
+	@echo ""
+	@echo "Legacy Deployment:"
 	@echo "  make deploy NETWORK=arbitrum   Deploy to Arbitrum One"
 	@echo "  make deploy NETWORK=berachain  Deploy to Berachain"
 	@echo ""
@@ -176,21 +242,23 @@ help:
 	@echo ""
 	@echo "Supported Networks: $(SUPPORTED_NETWORKS)"
 	@echo ""
-	@echo "Environment Variables Required:"
-	@echo "  ACCOUNT                Forge account name (not required for local deploy)"
-	@echo "  OWNER_ADDRESS          ScopeGuard owner address (not required for local deploy)"
+	@echo "Environment Variables:"
+	@echo "  ACCOUNT                Forge account name (required for deployments)"
+	@echo "  SENDER_ADDRESS         Address of the deploying account (required for guard deployments)"
+	@echo "  PAIR                   Pair name (e.g., honey-wbera) - will use config/pairs/<pair>.toml"
+	@echo "  PAIR_CONFIG_FILE       Direct path to pair configuration file"
 	@echo "  GUARD_ADDRESS          ScopeGuard contract address (for management commands)"
 	@echo "  TARGET_ADDRESS         Target address to allow (for set-target-allowed command)"
 	@echo "  FUNCTION_SIG           Function signature (e.g., 'transfer(address,uint256)') (for set-allowed-function)"
 	@echo "  ALLOWED                Allow/disallow flag (true/false) (for set-target-allowed and set-allowed-function)"
 	@echo "  NEW_OWNER              New owner address (for transfer-ownership)"
 	@echo "  DRY_RUN                Dry run mode flag (true/false) - simulates transactions without executing"
-	@echo "  ARBISCAN_API_KEY       Arbiscan verification key (for Arbitrum)"
 
 status:
 	@echo "Current environment:"
 	@echo "NETWORK: $(NETWORK)"
-	@echo "OWNER_ADDRESS: $(OWNER_ADDRESS)"
+	@echo "PAIR: $(PAIR)"
+	@echo "PAIR_CONFIG_FILE: $(PAIR_CONFIG_FILE)"
 	@echo "GUARD_ADDRESS: $(GUARD_ADDRESS)"
 	@echo "TARGET_ADDRESS: $(TARGET_ADDRESS)"
 	@echo "SCOPED: $(SCOPED)"
@@ -199,3 +267,4 @@ status:
 	@echo "NEW_OWNER: $(NEW_OWNER)"
 	@echo "DRY_RUN: $(DRY_RUN)"
 	@if [ -n "$(ACCOUNT)" ]; then echo "ACCOUNT: $(ACCOUNT)"; else echo "ACCOUNT: [NOT SET]"; fi
+	@if [ -n "$(SENDER_ADDRESS)" ]; then echo "SENDER_ADDRESS: $(SENDER_ADDRESS)"; else echo "SENDER_ADDRESS: [NOT SET]"; fi

@@ -1,0 +1,17 @@
+# Example pair configuration
+pair_name = "HONEY-WBERA"
+
+# Guard owner address (Safe/multisig address)
+owner = "0x5678901234567890123456789012345678901234"
+
+# Variable liquidity protocol (can be kodiak, bex, etc.)
+[liquidity_protocol]
+name = "kodiak"
+address = "0x1234567890123456789012345678901234567890"
+functions = ["approve(address,uint256)"]
+
+# Pair-specific vault addresses
+[vaults]
+infrared = "0x2345678901234567890123456789012345678901"
+bearn = "0x3456789012345678901234567890123456789012"
+berapaw = "0x4567890123456789012345678901234567890123" 

@@ -9,6 +9,10 @@ remappings = [
   "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
   "@gnosis.pm/safe-contracts/contracts/=lib/safe-contracts/contracts/",
 ]
+fs_permissions = [
+  { access = "read", path = "config" },
+  { access = "write", path = "deployments" },
+]
 
 [rpc_endpoints]
 arbitrum = "https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}"

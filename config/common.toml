@@ -1,0 +1,18 @@
+# Common contract configurations for all pairs
+
+[tokens]
+lbgt = { address = "0xBaadCC2962417C01Af99fb2B7C75706B9bd6Babe", functions = ["approve(address,uint256)"] }
+ibgt = { address = "0xac03CABA51e17c86c921E1f6CBFBdC91F8BB2E6b", functions = ["approve(address,uint256)"] }
+ybgt = { address = "0x7e768f47dfDD5DAe874Aac233f1Bc5817137E453", functions = ["approve(address,uint256)"] }
+
+[protocols]
+bearn_vault_router = { address = "0x5453E39D4435e134aAfde275F3fEc52FEbF06958", functions = ["deposit(address,address,uint256,uint256)"] }
+oogabooga_swap = { address = "0xFd88aD4849BA0F729D6fF4bC27Ff948Ab1Ac3dE7", functions = ["swap((address,uint256,address,uint256,uint256,address),bytes,address,uint32)"] }
+kodiak_island_router = { address = "0x679a7C63FC83b6A4D9C1F931891d705483d4791F", functions = ["addLiquiditySingle(address,uint256,uint256,uint256,(uint256,uint256,bool,bytes),address)"] }
+lgbt_mint = { address = "0xFeedb9750d6ac77D2E52e0C9EB8fB79F9de5Cafe", functions = ["mint(address,address,address)"] }
+
+# Common vault configurations (applied to all pairs)
+[common_vaults]
+infrared = { functions = ["stake(uint256)", "getReward()", "withdraw(uint256)", "exit()"] }
+bearn = { functions = ["getReward()", "exit()"] }
+berapaw = { functions = ["stake(uint256)", "getReward()", "setOperator(address)", "exit()"] } 
